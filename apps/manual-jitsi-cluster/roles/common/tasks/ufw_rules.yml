@@ -1,0 +1,80 @@
+---
+# reset to reconfigure
+- name: Reset ufw
+  community.general.ufw:
+    state: reset
+  tags: testfw
+
+- name: enabling ufw with defaults    
+  community.general.ufw:
+    state: enabled
+  tags: testfw  
+
+# set app specific ufw rules 
+- name: Allow all access to tcp port 22
+  community.general.ufw:
+    rule: allow
+    port: '22'
+    proto: tcp
+
+# allow certbot
+- name: Allow all access to tcp port 80
+  community.general.ufw:
+    rule: allow
+    port: '80'
+    proto: tcp
+  run_once: true
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['jitsi_servers'] }}"
+      
+- name: Allow all access to tcp port 443
+  community.general.ufw:
+    rule: allow
+    port: '443'
+    proto: tcp    
+  run_once: true
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['jitsi_servers'] }}"
+
+# media traffic
+- name: Allow all access to tcp port 10000 
+  community.general.ufw:
+    rule: allow
+    port: '10000'
+    proto: udp
+  run_once: true
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['jvb_servers'] }}"
+      
+# video bridge (jitsi meet/nginx proxies to jvb on this port)
+- name: Allow private access to tcp port 9090
+  community.general.ufw:
+    rule: allow
+    port: '9090'
+    proto: tcp
+    from_ip: "{{ jitsi_data.results.jitsi.0.instance.ip_priv1 }}"
+  run_once: true
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['jvb_servers'] }}"
+
+# jvbs connect on this port to jitsi instance on public interface
+- name: Allow private access to tcp port 5222 to jvb
+  community.general.ufw:
+    rule: allow
+    port: '5222'
+    proto: tcp
+    from_ip: "{{ jitsi_data.results.jvb[count].instance.jitsi_ip1 }}"
+  run_once: true
+  delegate_to: "{{ groups['jitsi_servers'][0] }}"
+  loop: "{{ groups['jvb_servers'] }}"
+  loop_control:
+    index_var: count
+
+# async to avoid connection disruption
+- name: Enable ufw
+  community.general.ufw:
+    #state: enabled
+    state: reloaded
+  async: 60
+  poll: 0
+    #tags: testfw

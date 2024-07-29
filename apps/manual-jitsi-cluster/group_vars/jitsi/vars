@@ -1,0 +1,35 @@
+---
+# group_vars/jitsi/vars
+
+# instance vars
+ssh_keys: 
+  - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJQalZuAjeiWaPek5kJZxP4rTxuKlWgtSDFsdEGddf user1@desktop.local
+  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCg2ANZcgWWFGh0vakgX1/d6BueansO1zYopQpEN8kzdibU8haBZs1w6WLWI7enSO6LaO6oWJJOryzAjXVDXQNRGna2FaudTGwTT3CIQVdHLkBfQlvHQ3VtTMDpJj29g7zz9niDpoiLYGR8cUSxAC6gupVTcqpPpen6tvRJIqOnqrB3uwNf2S5f+5vXED2ewn5mo3KLMG3qw2rN/vFTitLa9cgW26VFjLOE49Clxw5suAuInmHNBeqR5dn/CMwND5ORCmiydUBKha8DbF3NdM1XLGVYHWMwUoLtc0M53ureBOXRqdiNvsRkJf5jOSuOhuzZYGlZvM1JJ5NVabF6LzLsZoqxs3PJtTdah8/Ou9a/ajeIBxw==
+
+jitsi_prefix: jitsi
+jitsi_type: g6-dedicated-2
+jvb_prefix: jvb
+jvb_type: g6-dedicated-2
+region: us-southeast
+image: linode/ubuntu22.04
+group: 
+linode_tags:
+soa_email_address: administrator@example.com
+jitsi_cluster_size: 1
+#jvb_cluster_size: 2
+sudo_username: admin
+
+# domain vars
+#subdomain: meet
+#domain: example.com
+
+# BEGIN ORIGINAL-JVB-SIZE
+# do not update. Modified by provision.yml
+original_jvb_cluster_size:
+# END ORIGINAL-JVB-SIZE
+
+# BEGIN DOMAIN-NAME
+# do not update. Modified by provision.yml
+#default_dns: 
+# END DOMAIN-NAME
+

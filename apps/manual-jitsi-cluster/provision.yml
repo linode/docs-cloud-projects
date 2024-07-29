@@ -1,0 +1,132 @@
+---
+# create jitsi Instnaces
+- name: create Jitsi instances
+  hosts: localhost
+  vars_files:
+      - group_vars/jitsi/vars
+      - group_vars/jitsi/secret_vars
+  vars:
+    jitsi_count: '{{ jitsi_cluster_size }}'
+    jvb_count: '{{ jvb_cluster_size }}'
+
+  tasks:
+
+# meet instance
+  - name: creating jitsi meet instances
+    linode.cloud.instance:
+      label: '{{ jitsi_prefix }}{{ item }}'
+      api_token: '{{ api_token }}'
+      type: '{{ jitsi_type }}'
+      region: '{{ region }}'
+      image: '{{ image }}'
+      root_pass: '{{ root_password }}'
+      authorized_keys: '{{ ssh_keys }}'
+      private_ip: true
+      group: '{{ group }}'
+      tags: '{{ linode_tags }}'
+      state: present
+    with_sequence: count='{{ jitsi_count }}'
+
+  - name: get info about jitsi meet instances
+    linode.cloud.instance_info:
+      api_token: '{{ api_token }}'
+      label: '{{ jitsi_prefix }}{{ item }}'
+    register: jitsi_info
+    with_sequence: count='{{ jitsi_count }}'
+
+# jvb instances
+  - name: creating jitsi jvb instances
+    linode.cloud.instance:
+      label: '{{ jvb_prefix }}{{ item }}'
+      api_token: '{{ api_token }}'
+      type: '{{ jvb_type }}'
+      region: '{{ region }}'
+      image: '{{ image }}'
+      root_pass: '{{ root_password }}'
+      authorized_keys: '{{ ssh_keys }}'
+      private_ip: true
+      group: '{{ group }}'
+      tags: '{{ linode_tags }}'
+      state: present
+    with_sequence: count='{{ jvb_count }}'
+
+  - name: get info about jitsi JVB instances
+    linode.cloud.instance_info:
+      api_token: '{{ api_token }}'
+      label: '{{ jvb_prefix }}{{ item }}'
+    register: jvb_info
+    with_sequence: count='{{ jvb_count }}'
+
+  - name: set facts
+    set_fact:
+      # jitsi
+      jitsi_ip1: '{{ jitsi_info.results.0.instance.ipv4[0] }}'
+      jitsi_priv1: '{{ jitsi_info.results.0.instance.ipv4[1] }}'
+
+  - name: update group_vars
+    blockinfile:
+      path: ./group_vars/jitsi/vars
+      marker: "# {mark} INSTANCE VARS"
+      block: |
+        #jinja2: trim_blocks:False
+        jitsi_data:
+          results:
+            jitsi:
+              - jitsi-01:
+                instance:
+                  hostname: jitsi1
+                  jitsi_ip1: {{ jitsi_ip1 }}
+                  ip_priv1: {{ jitsi_priv1 }}
+        # BEGIN JVB VARS
+            jvb:
+            {%- for count in range(jvb_cluster_size | int) %}
+              - jvb-{{ count + 1 }}:
+                instance:
+                  hostname: jvb{{ count + 1 }}
+                  jitsi_ip1: {{ jvb_info.results[count].instance.ipv4[0] }}
+                  ip_priv1: {{ jvb_info.results[count].instance.ipv4[1] }}
+            {%- endfor %}
+        # END JVB VARS
+
+  - name: update jvb original cluster size
+    blockinfile:
+      path: ./group_vars/jitsi/vars
+      marker: "# {mark} ORIGINAL-JVB-SIZE"
+      block: |
+        # do not update. Modified by provision.yml
+        original_jvb_cluster_size: {{ jvb_count }}
+
+  - name: update domain name to RDNS
+    blockinfile:
+      path: ./group_vars/jitsi/vars
+      marker: "# {mark} DOMAIN-NAME"
+      block: |
+        # do not update. Modified by provision.yml
+        default_dns: {{ jitsi_ip1 | replace('.','-') }}.ip.linodeusercontent.com
+    when: domain is undefined
+
+  - name: update inventory
+    blockinfile:
+      path: ./hosts
+      marker: "# {mark} Jitsi LINODES"
+      block: |
+        #jinja2: trim_blocks:False
+        [jitsi_servers]
+        {{ jitsi_ip1 }}
+        # BEGIN JVB HOST
+        [jvb_servers]
+        {%- for count in range(jvb_cluster_size | int) %}
+        {{ jvb_info.results[count].instance.ipv4[0] }}
+        {%- endfor %}
+        # END JVB HOST
+
+  - name: wait for port 22 to become open
+    wait_for:
+      port: 22
+      host: '{{ item.instance.ipv4[0] }}'
+      search_regex: OpenSSH
+      delay: 10
+    connection: local
+    with_items: 
+      - "{{ jvb_info.results }}"
+      - "{{ jitsi_info.results }}"
