@@ -1,0 +1,40 @@
+---
+# roles/jitsi/tasks/jitsi.yml
+
+- name: set jitsi jvb conf
+  debconf:
+    name: jitsi-videobridge
+    question: jitsi-videobridge/jvb-hostname
+    value: "{{ _domain }}"
+    vtype: string
+
+- name: set jitsi web config
+  debconf:
+    name: jitsi-meet-web-config
+    question: jitsi-meet/cert-choice
+    value: "Generate a new self-signed certificate (You will later get a chance to obtain a Let's encrypt certificate)'"
+    vtype: select
+
+- name: installing full jitsi meet suite on jitsi instances only
+  apt:
+    pkg: jitsi-meet
+    state: present
+    lock_timeout: 5
+  run_once: true
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['jitsi_servers'] }}"    
+
+- name: installing let's encrypt certificate
+  shell: echo {{ soa_email_address }} | /usr/share/jitsi-meet/scripts/install-letsencrypt-cert.sh
+  run_once: true
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['jitsi_servers'] }}"
+
+- name: installing JVB on video bridges
+  apt:
+    pkg: jitsi-videobridge2
+    lock_timeout: 5
+    state: present
+  run_once: true  
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['jvb_servers'] }}"

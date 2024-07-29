@@ -1,0 +1,95 @@
+---
+# create dns records
+
+- name: set ip address
+  set_fact:
+    ip_address: '{{ ansible_default_ipv4.address }}'
+
+# loop through domains the provided API token has grants to. Creating an A record without a zone, 
+# or creating a duplicate zone will fail the play.
+
+- name: check existence of domain zone
+  block:
+    - name: lookup domain info
+      linode.cloud.domain_info:
+        api_token: "{{ api_token }}"
+        domain: "{{ domain }}"
+      register: domain_output
+
+    - name: print domain info
+      ansible.builtin.debug:
+        var: domain_output.zone_file.zone_file.0
+
+    - name: check domain existence
+      ansible.builtin.debug:
+        msg: "domain zone already exists"
+      when: domain in domain_output.zone_file.zone_file.0
+
+  rescue:
+    - name: handle failure
+      ansible.builtin.debug:
+        msg: "domain zone does not exist"
+
+- name: create a dns zone
+  linode.cloud.domain:
+    api_token: "{{ api_token }}"
+    domain: "{{ domain }}"
+    state: present
+    type: master
+    soa_email: "{{ soa_email_address }}"
+  when:
+    - domain is defined
+    - domain_output.zone_file.zone_file.0 is not defined
+
+- name: create A record for domain
+  linode.cloud.domain_record:
+    api_token: "{{ api_token }}"
+    domain: "{{ domain }}"
+    name: ""
+    type: 'A'
+    target: "{{ ansible_default_ipv4.address }}"
+    ttl_sec: 30
+    state: present
+  when:
+    - domain is defined
+
+- name: create A record for subdomain
+  linode.cloud.domain_record:
+    api_token: "{{ api_token }}"
+    domain: "{{ domain }}"
+    name: "{{ subdomain }}"
+    type: 'A'
+    target: "{{ ansible_default_ipv4.address }}"
+    ttl_sec: 30
+    state: present
+  when: 
+    - domain is defined
+    - subdomain is defined
+
+- name: wait for DNS propogation
+  ansible.builtin.pause: 
+    minutes: 3
+
+- name: get dig results for domain
+  set_fact:
+    tld_dig_result: "{{ lookup('community.general.dig', domain, '@8.8.8.8') }}"
+
+- name: get dig results for subdomain
+  set_fact:
+    subdomain_dig_result: "{{ lookup('community.general.dig', subdomain + '.' + domain, '@8.8.8.8') }}"
+  when: subdomain | length > 0
+
+- name: make sure that propagation is done tld
+  assert:
+    that: "ip_address in tld_dig_result"
+  until: ip_address in tld_dig_result
+  when: domain is defined
+
+- name: make sure that propagation is done subdomain
+  assert:
+    that: "ip_address in subdomain_dig_result"
+  until: ip_address in subdomain_dig_result
+  when: 
+    - domain is defined
+    - subdomain is defined
+    - subdomain | length > 0

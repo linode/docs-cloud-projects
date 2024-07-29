@@ -1,0 +1,37 @@
+---
+# roles/jitsi/tasks/hostname.yml
+
+- name: configure hostnames on jitsi servers
+  hostname:
+    use: systemd
+    name: "{{ jitsi_data.results.jitsi[count].instance.hostname }}"
+  run_once: true
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['jitsi_servers'] }}"
+  loop_control:
+    index_var: count
+
+- name: configure hostnames on JVB servers
+  hostname:
+    use: systemd
+    name: "{{ jitsi_data.results.jvb[count].instance.hostname }}"
+  run_once: true
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['jvb_servers'] }}"
+  loop_control:
+    index_var: count
+
+- name: update /etc/hosts on all of the nodes
+  blockinfile:
+    path: /etc/hosts
+    marker: "# {mark} jitsi servers"
+    block: |
+      #jinja2: trim_blocks:False
+      # Jitsi
+      {%- for count in range(jitsi_cluster_size | int) %}
+      {{ jitsi_data.results.jitsi[count].instance.ip_priv1 }} {{ jitsi_data.results.jitsi[count].instance.hostname }}
+      {%- endfor %}
+      # JVB
+      {%- for count in range(jvb_cluster_size | int) %}
+      {{ jitsi_data.results.jvb[count].instance.ip_priv1 }} {{ jitsi_data.results.jvb[count].instance.hostname }}
+      {%- endfor %}

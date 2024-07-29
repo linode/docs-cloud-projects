@@ -1,0 +1,5 @@
+---
+# roles/post/tasks/main.yml
+
+- name: adding sudo user
+  import_tasks: sudouser.yml

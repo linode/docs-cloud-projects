@@ -1,0 +1,16 @@
+# Jitsi ansible playbook
+
+# linodes
+- name: configure jitsi instances
+  hosts: all
+  any_errors_fatal: true
+  user: root
+  vars:
+    local_home: "{{ lookup('env','HOME') }}"
+  vars_files:
+    - group_vars/jitsi/vars
+    - group_vars/jitsi/secret_vars
+  roles:
+    - common
+    - jitsi
+    - post

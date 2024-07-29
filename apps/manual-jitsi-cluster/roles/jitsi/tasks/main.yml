@@ -1,0 +1,14 @@
+---
+# roles/jitsi/tasks
+
+- name: configure hostname
+  import_tasks: hostname.yml
+
+- name: add jitsi repository
+  import_tasks: repo.yml
+
+- name: install jitsi
+  import_tasks: jitsi.yml
+
+- name: configure cluster
+  import_tasks: configure.yml
