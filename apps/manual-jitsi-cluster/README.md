@@ -54,7 +54,7 @@ ansible-vault encrypt_string '@R34llyStr0ngP455w0rd!' --name 'sudo_password'
 ansible-vault encrypt_string 'LINODE_TOKEN' --name 'api_token'
 ```
 
-Copy the generated outputs to the group_vars/galera/secret_vars file.
+Copy the generated outputs to the group_vars/jitsi/secret_vars file.
 
 ```
 root_password: !vault |
