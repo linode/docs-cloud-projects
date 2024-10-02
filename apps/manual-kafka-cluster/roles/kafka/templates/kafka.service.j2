@@ -1,0 +1,22 @@
+# broker and controller - /etc/kafka/config/kraft/server.properties
+
+[Unit]
+Description=Apache Kafka server ({{ myrole }})
+Documentation=http://kafka.apache.org/documentation.html
+Requires=network.target remote-fs.target
+After=network.target
+
+[Service]
+Type=simple
+User=kafka
+Group=kafka
+
+Environment='SERVER_PROPERTIES={{ server_properties }}'
+Environment="LOG_DIR=/var/log/kafka"
+Environment="KAFKA_HEAP_OPTS=-Xmx2G -Xms2G"
+Environment="LOG4J_CONFIG=file:/etc/kafka/config/log4j.properties"
+ExecStart=/etc/kafka/bin/kafka-server-start.sh $SERVER_PROPERTIES
+ExecStop=/etc/kafka/bin/kafka-server-stop.sh
+
+[Install]
+WantedBy=multi-user.target

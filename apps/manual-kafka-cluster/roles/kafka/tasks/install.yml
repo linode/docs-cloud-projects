@@ -1,0 +1,70 @@
+---
+# install kafka in cluster
+
+- name: create kafka config directory
+  file:
+    path: "{{ kafka_config_directory }}"
+    state: directory
+    mode: 0755
+    owner: kafka
+    group: kafka
+
+# 3.8.0
+- name: download kafka {{ kafka_version }}
+  get_url: 
+    url: "https://downloads.apache.org/kafka/{{ kafka_version }}/kafka_2.13-{{ kafka_version }}.tgz"
+    dest: "/tmp/kafka_2.13-{{ kafka_version }}.tgz"
+    owner: kafka
+    group: kafka
+    mode: 0644
+
+- name: untar kafka archive
+  unarchive:
+    src: "/tmp/kafka_2.13-{{ kafka_version }}.tgz"
+    dest: "{{ kafka_config_directory }}"
+    extra_opts: [--strip-components=1]
+    remote_src: true
+
+- name: updating config directory ownership
+  ansible.builtin.file:
+    path: "{{ kafka_config_directory }}"
+    state: directory
+    recurse: yes
+    owner: kafka
+    group: kafka
+
+- name: set fact for servers who are broker and controller
+  set_fact:
+    myrole: 'broker and controller'
+    server_properties: /etc/kafka/config/kraft/server.properties
+  run_once: true
+  delegate_to: localhost
+
+- name: add kafka systemd service file for broker and controller
+  template:
+    src: templates/kafka.service.j2
+    dest: /lib/systemd/system/kafka.service
+  run_once: true
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['kafka'] }}"
+  loop_control:
+    index_var: count
+  when: hostvars[groups['kafka'][count]].role == 'controller and broker'
+
+- name: set fact for broker only
+  set_fact:
+    myrole: broker
+    server_properties: /etc/kafka/config/kraft/broker.properties
+  run_once: true
+  delegate_to: localhost
+
+- name: add kafka systemd service file for brokers
+  template:
+    src: templates/kafka.service.j2
+    dest: /lib/systemd/system/kafka.service
+  run_once: true
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['kafka'] }}"
+  loop_control:
+    index_var: count
+  when: hostvars[groups['kafka'][count]].role == 'broker only'
