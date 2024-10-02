@@ -1,0 +1,29 @@
+# deployment vars
+ssh_keys:
+  - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJQalZuAjeiWaPek5kJZxP4rTxuKlWgtSDFsdEGddf user1@desktop.local 
+  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCg2ANZcgWWFGh0vakgX1/d6Buea==
+
+instance_prefix: kafka
+type: g6-dedicated-2
+region: us-southeast
+image: linode/ubuntu22.04
+group:
+linode_tags:
+
+cluster_size: 3
+client_count: 2
+sudo_username: admin
+
+# Do not update #
+####################
+kafka_version: 3.8.0
+controller_count: 3
+#####################
+
+#tls
+country_name: US
+state_or_province_name: Pennsylvania
+locality_name: Philadelphia
+organization_name: Akamai Technologies
+email_address: webmaster@example.com
+ca_common_name: Kafka RootCA

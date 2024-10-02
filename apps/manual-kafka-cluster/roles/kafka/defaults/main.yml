@@ -1,0 +1,16 @@
+---
+# global vars
+#kafka_version: 3.8.0
+kafka_config_directory: /etc/kafka
+kafka_bin_directory: /etc/kafka/bin
+kafka_data_directory: /var/lib/kafka
+kafka_log_directory: /var/log/kafka
+
+# ssl
+kafka_ssl_directory: /etc/kafka/ssl
+kafka_ssl_ca_directory: /etc/kafka/ssl/ca
+kafka_ssl_req_directory: /etc/kafka/ssl/req
+kafka_ssl_key_directory: /etc/kafka/ssl/key
+kafka_ssl_cert_directory: /etc/kafka/ssl/cert
+kafka_ssl_keystore_directory: /etc/kafka/ssl/keystore
+kafka_ssl_truststore_directory: /etc/kafka/ssl/truststore

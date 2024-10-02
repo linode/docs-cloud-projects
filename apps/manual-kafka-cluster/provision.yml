@@ -1,0 +1,67 @@
+---
+# create kafka server and client instances
+- name: create kafka instances
+  hosts: localhost
+  vars_files:
+      - group_vars/kafka/vars
+      - group_vars/kafka/secret_vars
+  
+  tasks:
+
+  - name: creating kafka servers
+    linode.cloud.instance:
+      label: '{{ instance_prefix }}{{ item }}'
+      api_token: '{{ api_token }}'
+      type: '{{ type }}'
+      region: '{{ region }}'
+      image: '{{ image }}'
+      root_pass: '{{ root_password }}'
+      authorized_keys: '{{ ssh_keys }}'
+      private_ip: true
+      ua_prefix: 'docs-kafka-occ'          
+      tags: '{{ linode_tags }}'
+      state: present
+    with_sequence: count='{{ cluster_size }}'
+
+  - name: get info about the instances
+    linode.cloud.instance_info:
+      api_token: '{{ api_token }}'
+      label: '{{ instance_prefix }}{{ item }}'
+    register: info
+    with_sequence: count='{{ cluster_size }}'
+
+  - name: update group_vars
+    blockinfile:
+      path: ./group_vars/kafka/vars
+      marker: "# {mark} INSTANCE VARS"
+      block: |
+        #jinja2: trim_blocks:False
+        kafka_data:
+          server:
+            {%- for count in range(cluster_size) %}
+            - kafka{{ count + 1 }}:
+              instance:
+                hostname: kafka{{ count + 1 }}
+                ip_pub1: {{ info.results[count].instance.ipv4[0] }}
+                ip_priv1: {{ info.results[count].instance.ipv4[1] }}
+            {%- endfor %}
+
+  - name: add kafka nodes to inventory
+    blockinfile:
+      path: ./hosts
+      marker: "# {mark} KAFKA INSTANCES"
+      block: |
+        #jinja2: trim_blocks:False
+        [kafka]
+        {%- for count in range(cluster_size) %}
+        {{ info.results[count].instance.ipv4[0] }} {% if count < controller_count %}role='controller and broker'{%else%}role='broker only'{%endif%}
+        {%- endfor %}
+
+  - name: wait for port 22 to become open
+    wait_for:
+      port: 22
+      host: '{{ item.instance.ipv4[0] }}'
+      search_regex: OpenSSH
+      delay: 10
+    connection: local
+    with_items: "{{ info.results }}"

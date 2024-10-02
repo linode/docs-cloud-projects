@@ -1,0 +1,22 @@
+---
+# configure hostname and hosts file
+
+- name: update /etc/hosts
+  blockinfile:
+    path: /etc/hosts
+    marker: "# {mark} KAFKA HOSTS"
+    block: |
+      #jinja2: trim_blocks:False
+      {%- for count in range(cluster_size) %}
+      {{ kafka_data.server[count].instance.ip_priv1 }} {{ kafka_data.server[count].instance.hostname }}
+      {%- endfor %}
+
+- name: configure hostnames
+  hostname:
+    use: systemd
+    name: "{{ kafka_data.server[count].instance.hostname }}"
+  run_once: true
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['kafka'] }}"
+  loop_control:
+    index_var: count
