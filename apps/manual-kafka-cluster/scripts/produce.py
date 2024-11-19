@@ -6,7 +6,7 @@ import json
 
 # Kafka SSL configuration
 conf = {
-    'bootstrap.servers': 'REPLACE_ME:9092',  # Kafka broker
+    'bootstrap.servers': 'kafka1:9092,kafka2:9092,kafka3:9092',  # Kafka broker
     'client.id': 'python-producer',
     'security.protocol': 'SSL',
     'ssl.ca.location': 'ca-crt',

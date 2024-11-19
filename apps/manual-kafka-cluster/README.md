@@ -1,5 +1,5 @@
 # Kafka One-Click CLUSTER
-![kafka-cluster.png](images/kafka-cluster-02.png)
+![kafka-cluster.png](images/kafka-cluster-04.png)
 
 Apache Kafka is a robust, scalable, and high-performance system for managing real-time data streams. Its versatile architecture and feature set make it an essential component for modern data infrastructure, supporting a wide range of applications from log aggregation to real-time analytics and more. Whether you are building data pipelines, event-driven architectures, or stream processing applications, Kafka provides a reliable foundation for your data needs.
 
@@ -12,7 +12,7 @@ The manual deployment of Kafka is using Kafka's native consensus protocol, [KRaf
 
 ## Distributions
 
-- Ubuntu 22.04 LTS
+- Ubuntu 24.04 LTS
 
 ## Sotware Included
 
@@ -160,9 +160,9 @@ When the playbook is finished, you should see a similar output:
 
 ```
 PLAY RECAP ************************************************************************************************************************************************************************************************************************************************************
-192.155.94.186             : ok=25   changed=24   unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-23.239.17.165              : ok=25   changed=24   unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
-45.33.102.196              : ok=49   changed=46   unreachable=0    failed=0    skipped=3    rescued=0    ignored=0
+192.0.2.21                 : ok=25   changed=24   unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+198.51.100.17              : ok=25   changed=24   unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+203.0.113.24               : ok=49   changed=46   unreachable=0    failed=0    skipped=3    rescued=0    ignored=0
 ```
 
 ## Producing and Consuming Data
@@ -172,18 +172,46 @@ PLAY RECAP *********************************************************************
 Now that you have a Kafka cluster up an running on your account we can produce and consume messages from the brokers. First, we will need to install the following system package:
 
 ```command
-sudo apt install confluent_kafka
+pip install confluent_kafka
 ```
 
 ### Obtain Client Certificate
 
-Before we can send data to the Kafka broker we need to authenticate with our client certificates. You will need to grab the following files from the first kafka node, in this case **kafka1**, and put it in your local environment:
+In order to send data to the Kafka broker, you must obtain three certificate files (ca-cert, client1.crt, and client1.key) stored on the first Kafka server in your cluster, kafka1. 
+These certificate files must also be located in the same working directory as the `produce.py` and `consume.py` scripts used to produce and consume testing data, respectively. 
+These scripts are located in the `/scripts` directory of the **manual-kafka-cluster** folder that was cloned from the docs-cloud-projects repository.
 
-- `/etc/kafka/ssl/cert/client1.crt`
-- `/etc/kafka/ssl/key/client1.key`
-- `/etc/kafka/ssl/ca/ca-crt`
+In your local virtual environment, navigate to the scripts folder within manual-kafka-cluster:
 
-We will use these certificates to connect to the cluster in a secure and authenticated manner in the next section. 
+`cd scripts`
+
+Confirm the contents of the directory:
+
+`ls`
+
+You should see both the `produce.py` and `consume.py` scripts, along with the `getcerts.sh` script used to obtain the necessary certificate files from the kafka1 server:
+
+```
+consume.py  getcerts.sh produce.py
+```
+
+To obtain the certificate files, run the `getcerts.sh` script. Replace `IP_ADDRESS` with the IP address of your first Kafka node, kafka1.
+
+`bash getcerts.sh IP_ADDRESS`
+
+Output:
+```
+[info] fetching /etc/kafka/ssl/cert/client1.crt from 192.0.2.21..
+[info] fetching /etc/kafka/ssl/key/client1.key from 192.0.2.21..
+[info] fetching /etc/kafka/ssl/ca/ca-crt from 192.0.2.21..
+```
+Confirm successful download of the certificate files, ca-cert, client1.crt, and client1.key:
+
+`ls`
+
+```
+ca-crt      client1.crt client1.key consume.py  getcerts.sh produce.py
+```
 
 ### Produce Messages
 
@@ -192,7 +220,15 @@ Before we can send any data to the Kafka broker you will need to download both `
 - [produce.py](https://github.com/linode/docs-cloud-projects/blob/main/apps/manual-kafka-cluster/scripts/produce.py)
 - [consume.py](https://github.com/linode/docs-cloud-projects/blob/main/apps/manual-kafka-cluster/scripts/consume.py)
 
-Open the `produce.py` script and update the text **REPLACE_ME** with the IP address to one of your Kafka nodes. Once you save the file, you can run the script to send the sample data to the broker:
+Make sure that you update your local `/etc/hosts` file to point to the Kafka servers. For example:
+
+```
+192.0.2.21 kafka1
+198.51.100.175 kafka2
+203.0.113.24 kafka3
+```
+
+Open the `produce.py` script and update the text **REPLACE_ME** with the hostname of one of your Kafka nodes. Once you save the file, you can run the script to send the sample data to the broker:
 
 ```
 python3 produce.py
@@ -210,7 +246,7 @@ Make sure that `produce.py` and `consume.py` are in the same directory where the
 
 ### Consume Messages
 
-Consuming a message exactly the same procedure as above. Ensure that the `comsume.py` is updated to **REPLACE_ME** with the IP address to one of your Kafka nodes. Once that is complete, you can run the consumer script:
+Consuming a message exactly the same procedure as above. Ensure that the `comsume.py` is updated to **REPLACE_ME** with the hostname of one of your Kafka nodes. Once that is complete, you can run the consumer script:
 
 ```
 python3 consume.py
