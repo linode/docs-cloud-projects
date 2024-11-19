@@ -6,7 +6,7 @@ ssh_keys:
 instance_prefix: kafka
 type: g6-dedicated-2
 region: us-southeast
-image: linode/ubuntu22.04
+image: linode/ubuntu24.04
 group:
 linode_tags:
 
