@@ -228,7 +228,9 @@ Make sure that you update your local `/etc/hosts` file to point to the Kafka ser
 203.0.113.24 kafka3
 ```
 
-Open the `produce.py` script and update the text **REPLACE_ME** with the hostname of one of your Kafka nodes. Once you save the file, you can run the script to send the sample data to the broker:
+The `produce.py` script connects to one of the three Kafka broker nodes to send sample message data over port 9092. This is the default port Kafka brokers use to communicate with clients that produce and consume data.
+
+While in the `scripts` directory, run the `produce.py` script to send message data to the broker node:
 
 ```
 python3 produce.py
@@ -246,7 +248,9 @@ Make sure that `produce.py` and `consume.py` are in the same directory where the
 
 ### Consume Messages
 
-Consuming a message exactly the same procedure as above. Ensure that the `comsume.py` is updated to **REPLACE_ME** with the hostname of one of your Kafka nodes. Once that is complete, you can run the consumer script:
+Similar to the produce.py script, the `consume.py` script is provided to test the consumption of message data. The `consume.py` script connects to one of the available Kafka nodes to consume the messages that were produced by the `produce.py` script.
+
+While in the same working directory, `scripts`, run the `consume.py` script to receive the sample data:
 
 ```
 python3 consume.py
