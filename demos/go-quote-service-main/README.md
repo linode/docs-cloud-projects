@@ -1,3 +1,5 @@
+Author: https://github.com/the-gigi
+
 # go-quote-service
 
 The Go quote service is a super simple REST API service that manages a list of quotes.
