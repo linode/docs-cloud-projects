@@ -40,6 +40,45 @@
     register: info
     with_sequence: count='{{ cluster_size }}'
 
+  - name: check if hosts are in DNS
+    # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/domain_info/
+    linode.cloud.domain_info:
+      api_token: '{{ api_token }}'
+      domain: '{{ domain_name }}'
+    when: domain_name|d(False)
+    register: domain_info
+
+  - name: remove old hosts from dns
+    # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/domain_record/
+    linode.cloud.domain_record:
+      api_token: '{{ api_token }}'
+      domain_id: '{{ domain_info.domain.id }}'
+      record_id: '{{ item.id }}'
+      state: absent
+    vars:
+      instance_ips: "{{ dict(info.results | map(attribute='instance.label') | zip(info.results | map(attribute='networking.ipv4.public.0.address'))) }}"
+    when:
+      - domain_name|d(False)
+      - domain_info|d(False)
+      - item.name in instance_ips
+      - item.target != instance_ips[item.name]
+    with_items: "{{ domain_info.records }}"
+
+  - name: add new hosts to dns
+    # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/domain_record/
+    linode.cloud.domain_record:
+      api_token: '{{ api_token }}'
+      domain_id: '{{ domain_info.domain.id }}'
+      name: '{{ instance_prefix + item }}'
+      target: '{{ info.results[item|int-1].instance.ipv4[0] }}'
+      ttl_sec: '{{ ttl_sec | default(omit) }}'
+      type: 'A'
+      state: present
+    with_sequence: count='{{ cluster_size }}'
+    when:
+      - domain_name|d(False)
+      - domain_info|d(False)
+
   - name: update group_vars
     blockinfile:
       path: ./group_vars/kafka/vars
@@ -51,7 +90,7 @@
             {%- for count in range(cluster_size) %}
             - kafka{{ count + 1 }}:
               instance:
-                hostname: kafka{{ count + 1 }}
+                hostname: kafka{{ count + 1 }}{% if domain_name|d(False) and domain_info %}.{{ domain_name }}{% endif %}
                 ip_pub1: {{ info.results[count].instance.ipv4[0] }}
                 ip_priv1: {{ info.results[count].instance.ipv4[1] }}
             {%- endfor %}
