@@ -64,13 +64,13 @@
         #jinja2: trim_blocks:False
         [kafka]
         {%- for count in range(cluster_size) %}
-        {{ info.results[count].instance.ipv4[0] }} {% if count < controller_count %}role='controller and broker'{%else%}role='broker only'{%endif%}
+        {{ info.results[count].networking.ipv4.public[0].rdns }} {% if count < controller_count %}role='controller and broker'{%else%}role='broker only'{%endif%}
         {%- endfor %}
 
   - name: wait for port 22 to become open
     wait_for:
       port: 22
-      host: '{{ item.instance.ipv4[0] }}'
+      host: '{{ item.networking.ipv4.public[0].rdns }}'
       search_regex: OpenSSH
       delay: 10
     connection: local
