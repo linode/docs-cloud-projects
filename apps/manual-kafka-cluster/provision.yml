@@ -16,6 +16,20 @@
     register: firewall_info
     when: firewall_label|d(False)
 
+  - name: check if instances already created
+    # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/instance_list/
+    linode.cloud.instance_list:
+      api_token: '{{ api_token }}'
+      filters:
+        - name: label
+          values: "{{ [ instance_prefix ] | product(range(1, cluster_size+1)) | map('join') | list }}"
+      order_by: label
+    register: existing_instances
+
+  - name: convert instances to a dict
+    set_fact:
+      existing_instances: "{{ dict(existing_instances.instances | map(attribute='label') | zip(existing_instances.instances)) }}"
+
   - name: creating kafka servers
     # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/instance/
     linode.cloud.instance:
@@ -32,6 +46,7 @@
       state: present
       firewall_id: '{{ (firewall_info.firewall|default({})).id|default(omit) }}'
     with_sequence: count='{{ cluster_size }}'
+    when: (instance_prefix + item) not in existing_instances
 
   - name: get info about the instances
     linode.cloud.instance_info:
