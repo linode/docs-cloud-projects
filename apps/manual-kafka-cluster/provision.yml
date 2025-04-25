@@ -88,9 +88,9 @@
         kafka_data:
           server:
             {%- for count in range(cluster_size) %}
-            - kafka{{ count + 1 }}:
+            - name: {{instance_prefix}}{{ count + 1 }}
               instance:
-                hostname: kafka{{ count + 1 }}{% if domain_name|d(False) and domain_info %}.{{ domain_name }}{% endif %}
+                hostname: {{instance_prefix}}{{ count + 1 }}{% if domain_name|d(False) and domain_info %}.{{ domain_name }}{% endif %}
                 ip_pub1: {{ info.results[count].instance.ipv4[0] }}
                 ip_priv1: {{ info.results[count].instance.ipv4[1] }}
             {%- endfor %}
