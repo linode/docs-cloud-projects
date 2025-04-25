@@ -69,12 +69,12 @@
     linode.cloud.domain_record:
       api_token: '{{ api_token }}'
       domain_id: '{{ domain_info.domain.id }}'
-      name: '{{ instance_prefix + item }}'
-      target: '{{ info.results[item|int-1].instance.ipv4[0] }}'
+      name: '{{ item.instance.label }}'
+      target: '{{ item.instance.ipv4[0] }}'
       ttl_sec: '{{ ttl_sec | default(omit) }}'
       type: 'A'
       state: present
-    with_sequence: count='{{ cluster_size }}'
+    with_items: "{{ info.results }}"
     when:
       - domain_name|d(False)
       - domain_info|d(False)
@@ -88,9 +88,9 @@
         kafka_data:
           server:
             {%- for count in range(cluster_size) %}
-            - name: {{instance_prefix}}{{ count + 1 }}
+            - name: {{ info.results[count].instance.label }}
               instance:
-                hostname: {{instance_prefix}}{{ count + 1 }}{% if domain_name|d(False) and domain_info %}.{{ domain_name }}{% endif %}
+                hostname: {{ info.results[count].instance.label }}{% if domain_name|d(False) and domain_info %}.{{ domain_name }}{% endif %}
                 ip_pub1: {{ info.results[count].instance.ipv4[0] }}
                 ip_priv1: {{ info.results[count].instance.ipv4[1] }}
             {%- endfor %}
