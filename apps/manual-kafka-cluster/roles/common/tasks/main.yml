@@ -46,3 +46,6 @@
 
 - name: apply ufw rules
   import_tasks: ufw_rules.yml
+
+- name: reboot linode
+  reboot:
