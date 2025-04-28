@@ -1,0 +1,66 @@
+---
+# shutdown kafka server and client instances
+- name: shutdown kafka instances
+  hosts: localhost
+  vars_files:
+      - group_vars/kafka/vars
+      - group_vars/kafka/secret_vars
+
+  tasks:
+
+  # DNS
+
+  - name: check if hosts are in DNS
+    # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/domain_info/
+    linode.cloud.domain_info:
+      api_token: '{{ api_token }}'
+      domain: '{{ domain_name }}'
+    when: domain_name|d(False)
+    register: domain_info
+
+  - name: remove hosts from dns
+    # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/domain_record/
+    linode.cloud.domain_record:
+      api_token: '{{ api_token }}'
+      domain_id: '{{ domain_info.domain.id }}'
+      record_id: '{{ item.id }}'
+      state: absent
+    when:
+      - domain_name|d(False)
+      - domain_info|d(False)
+      - item.target in (kafka_data.server | map(attribute='instance.ip_pub1'))
+    with_items: "{{ domain_info.records }}"
+
+
+  # Instances
+
+  - name: get list of instances
+    # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/instance_list/
+    linode.cloud.instance_list:
+      api_token: '{{ api_token }}'
+      filters:
+        - name: label
+          values: "{{ [ instance_prefix ] | product(range(1, cluster_size+1)) | map('join') | list }}"
+      order_by: label
+    register: existing_instances
+
+  - name: shutdown kafka servers
+    # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/instance/
+    linode.cloud.instance:
+      label: '{{ item.label }}'
+      api_token: '{{ api_token }}'
+      region: '{{ region }}'
+      state: absent
+    with_items: '{{ existing_instances.instances }}'
+
+  - name: update group_vars
+    blockinfile:
+      path: ./group_vars/kafka/vars
+      marker: "# {mark} INSTANCE VARS"
+      state: absent
+
+  - name: remove kafka nodes from inventory
+    blockinfile:
+      path: ./hosts
+      marker: "# {mark} KAFKA INSTANCES"
+      state: absent
