@@ -1,3 +1,6 @@
+Author: https://github.com/takashito
+Original repo: https://github.com/takashito/linode-mcp-server
+
 # Linode MCP Server
 
 [![main version](https://img.shields.io/github/package-json/v/takashito/linode-mcp-server?color=blue)](https://github.com/takashito/linode-mcp-server)
