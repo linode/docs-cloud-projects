@@ -9,6 +9,7 @@ region: us-southeast
 image: linode/ubuntu24.04
 group:
 linode_tags:
+firewall_label:
 
 cluster_size: 3
 client_count: 2

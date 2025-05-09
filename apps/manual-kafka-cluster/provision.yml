@@ -8,7 +8,16 @@
   
   tasks:
 
+  - name: get firewall info
+    # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/firewall_info/
+    linode.cloud.firewall_info:
+      label: '{{ firewall_label }}'
+      api_token: '{{ api_token }}'
+    register: firewall_info
+    when: firewall_label|d(False)
+
   - name: creating kafka servers
+    # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/instance/
     linode.cloud.instance:
       label: '{{ instance_prefix }}{{ item }}'
       api_token: '{{ api_token }}'
@@ -21,6 +30,7 @@
       ua_prefix: 'docs-kafka-occ'          
       tags: '{{ linode_tags }}'
       state: present
+      firewall_id: '{{ (firewall_info.firewall|default({})).id|default(omit) }}'
     with_sequence: count='{{ cluster_size }}'
 
   - name: get info about the instances
@@ -54,13 +64,13 @@
         #jinja2: trim_blocks:False
         [kafka]
         {%- for count in range(cluster_size) %}
-        {{ info.results[count].instance.ipv4[0] }} {% if count < controller_count %}role='controller and broker'{%else%}role='broker only'{%endif%}
+        {{ info.results[count].networking.ipv4.public[0].rdns }} {% if count < controller_count %}role='controller and broker'{%else%}role='broker only'{%endif%}
         {%- endfor %}
 
   - name: wait for port 22 to become open
     wait_for:
       port: 22
-      host: '{{ item.instance.ipv4[0] }}'
+      host: '{{ item.networking.ipv4.public[0].rdns }}'
       search_regex: OpenSSH
       delay: 10
     connection: local
