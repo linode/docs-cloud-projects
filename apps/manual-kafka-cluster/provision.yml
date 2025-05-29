@@ -48,6 +48,7 @@
       vpc_id: '{{ vpc_info.vpc.id }}'
       api_token: '{{ api_token }}'
     register: vpc_subnet_info
+    ignore_errors: true
     when:
       - vpc_label|d(False)
       - vpc_info.vpc.id
@@ -62,6 +63,7 @@
     when:
       - vpc_label|d(False)
       - vpc_info.vpc.id
+      - vpc_subnet_info is succeeded
       - vpc_subnet_info.subnet.ipv4 != vpc_subnet
 
   - name: create vpc subnet
