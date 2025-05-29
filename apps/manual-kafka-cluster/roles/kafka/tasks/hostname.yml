@@ -8,7 +8,7 @@
     block: |
       #jinja2: trim_blocks:False
       {%- for count in range(cluster_size) %}
-      {{ kafka_data.server[count].instance.ip_priv1 }} {{ kafka_data.server[count].instance.hostname }}
+      {{ kafka_data.server[count].instance.ip_priv1 }} {{ kafka_data.server[count].instance.hostname }} {{ kafka_data.server[count].name }}
       {%- endfor %}
 
 - name: configure hostnames

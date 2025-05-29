@@ -51,16 +51,31 @@
     index_var: count
   when: hostvars[groups['kafka'][count]].role == 'broker only'
 
+- name: check existing kafka cluster uuid
+  shell:
+    cmd: grep -s cluster.id {{ kafka_data_directory }}/data/kraft-combined-logs/meta.properties | cut -f 2 -d = || /bin/true
+    removes: "{{ kafka_data_directory}}/data/kraft-combined-logs/meta.properties"
+  register: old_cluster_uuid
+  run_once: true
+  delegate_to: "{{ groups['kafka'][0] }}"
+
 - name: create kafka cluster uuid
   command:
     cmd:  "{{ kafka_bin_directory }}/kafka-storage.sh random-uuid"
-  register: cluster_uuid
+    creates: "{{ kafka_data_directory}}/data/kraft-combined-logs/meta.properties"
+  register: new_cluster_uuid
+  run_once: true
+  delegate_to: "{{ groups['kafka'][0] }}"
+
+- name: determine kafka cluster uuid
+  set_fact:
+    cluster_uuid: "{{ (old_cluster_uuid.changed) | ternary(old_cluster_uuid.stdout, new_cluster_uuid.stdout) }}"
   run_once: true
   delegate_to: "{{ groups['kafka'][0] }}"
 
 - name: format data directory for controller and broker nodes
   command:
-    cmd: "{{ kafka_bin_directory }}/kafka-storage.sh format -t {{ cluster_uuid.stdout }} -c {{ kafka_config_directory }}/config/kraft/server.properties"
+    cmd: "{{ kafka_bin_directory }}/kafka-storage.sh format -t {{ cluster_uuid}} -c {{ kafka_config_directory }}/config/kraft/server.properties --ignore-formatted"
   become: true
   become_user: kafka
   run_once: true
@@ -72,7 +87,7 @@
 
 - name: format data directory broker nodes
   command:
-    cmd: "{{ kafka_bin_directory }}/kafka-storage.sh format -t {{ cluster_uuid.stdout }} -c {{ kafka_config_directory }}/config/kraft/broker.properties"
+    cmd: "{{ kafka_bin_directory }}/kafka-storage.sh format -t {{ cluster_uuid}} -c {{ kafka_config_directory }}/config/kraft/broker.properties --ignore-formatted"
   become: true
   become_user: kafka
   run_once: true
