@@ -9,6 +9,11 @@ region: us-southeast
 image: linode/ubuntu24.04
 group:
 linode_tags:
+firewall_label:
+
+# Optional settings for DNS
+domain_name:
+ttl_sec:
 
 cluster_size: 3
 client_count: 2
