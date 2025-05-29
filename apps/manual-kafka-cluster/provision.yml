@@ -8,6 +8,14 @@
 
   tasks:
 
+  - name: check if region supports all necessary features
+    # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/region_info/
+    # https://techdocs.akamai.com/cloud-computing/docs/how-to-choose-a-data-center#product-availability
+    linode.cloud.region_info:
+      api_token: '{{ api_token }}'
+      id: '{{ region }}'
+    register: region_info
+
   - name: assign vpc label
     when: not vpc_label|d(False)
     set_fact:
@@ -16,6 +24,11 @@
   - name: assign vpc subnet
     set_fact:
       vpc_subnet: '10.0.0.0/{{ 32 - (((3*cluster_size) | log(2) | round(0, "ceil"))|int) }}'  # subnet supports an IP range 3x the cluster size
+
+  - name: set hosts per placement group
+    set_fact:
+      max_hosts_per_pg: 4
+    when: not max_hosts_per_pg|d(False)
 
   - name: create vpc
     # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/vpc/
@@ -72,6 +85,18 @@
     register: firewall_info
     when: firewall_label|d(False)
 
+  - name: create placement group for HA
+    # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/placement_group/
+    linode.cloud.placement_group:
+      label: '{{ instance_prefix }}-{{ region }}-ha-{{ item }}'
+      placement_group_policy: strict
+      placement_group_type: anti_affinity:local
+      region: '{{ region }}'
+      state: present
+      api_token: '{{ api_token }}'
+    register: placement_group_info
+    with_sequence: count='{{ (cluster_size / max_hosts_per_pg) | round(0, "ceil") | int }}'
+
   - name: check if instances already created
     # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/instance_list/
     linode.cloud.instance_list:
@@ -102,11 +127,16 @@
           primary: true
           ipv4:
             nat_1_1: 'any'
+      placement_group:
+        compliant_only: true
+        id: '{{ placement_group.id }}'
       private_ip: false
       ua_prefix: 'docs-kafka-occ'
       tags: '{{ linode_tags }}'
       state: present
       firewall_id: '{{ (firewall_info.firewall|default({})).id|default(omit) }}'
+    vars:
+      placement_group: '{{ placement_group_info.results[(item|int-1) // max_hosts_per_pg].placement_group }}'
     with_sequence: count='{{ cluster_size }}'
     when: (instance_prefix + item) not in existing_instances
 
