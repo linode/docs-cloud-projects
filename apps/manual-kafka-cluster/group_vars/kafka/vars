@@ -1,6 +1,6 @@
 # deployment vars
 ssh_keys:
-  - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJQalZuAjeiWaPek5kJZxP4rTxuKlWgtSDFsdEGddf user1@desktop.local 
+  - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJQalZuAjeiWaPek5kJZxP4rTxuKlWgtSDFsdEGddf user1@desktop.local
   - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCg2ANZcgWWFGh0vakgX1/d6Buea==
 
 instance_prefix: kafka
@@ -10,6 +10,7 @@ image: linode/ubuntu24.04
 group:
 linode_tags:
 firewall_label:
+vpc_label:
 
 # Optional settings for DNS
 domain_name:

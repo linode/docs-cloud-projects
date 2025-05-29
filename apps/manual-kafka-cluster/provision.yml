@@ -5,8 +5,64 @@
   vars_files:
       - group_vars/kafka/vars
       - group_vars/kafka/secret_vars
-  
+
   tasks:
+
+  - name: assign vpc label
+    when: not vpc_label|d(False)
+    set_fact:
+      vpc_label: '{{ instance_prefix }}-cluster'
+
+  - name: assign vpc subnet
+    set_fact:
+      vpc_subnet: '10.0.0.0/{{ 32 - (((3*cluster_size) | log(2) | round(0, "ceil"))|int) }}'  # subnet supports an IP range 3x the cluster size
+
+  - name: create vpc
+    # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/vpc/
+    linode.cloud.vpc:
+      label: '{{ vpc_label }}-{{ region }}'
+      region: '{{ region }}'
+      api_token: '{{ api_token }}'
+      description: VPC for {{ linode_tags }} kafka brokers in {{ region }} to talk to each other.
+      state: present
+    register: vpc_info
+    when: vpc_label|d(False)
+
+  - name: get vpc subnet info
+    # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/vpc_subnet_info/
+    linode.cloud.vpc_subnet_info:
+      label: '{{ vpc_label }}-{{ region }}-brokers'
+      vpc_id: '{{ vpc_info.vpc.id }}'
+      api_token: '{{ api_token }}'
+    register: vpc_subnet_info
+    when:
+      - vpc_label|d(False)
+      - vpc_info.vpc.id
+
+  - name: remove incompatible subnet
+    # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/vpc_subnet/
+    linode.cloud.vpc_subnet:
+      label: '{{ vpc_label }}-{{ region }}-brokers'
+      api_token: '{{ api_token }}'
+      state: absent
+      vpc_id: '{{ vpc_info.vpc.id }}'
+    when:
+      - vpc_label|d(False)
+      - vpc_info.vpc.id
+      - vpc_subnet_info.subnet.ipv4 != vpc_subnet
+
+  - name: create vpc subnet
+    # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/vpc_subnet/
+    linode.cloud.vpc_subnet:
+      ipv4: '10.0.0.0/{{ 32 - (((3*cluster_size) | log(2) | round(0, "ceil"))|int) }}'  # subnet supports an IP range 3x the cluster size
+      label: '{{ vpc_label }}-{{ region }}-brokers'
+      api_token: '{{ api_token }}'
+      state: present
+      vpc_id: '{{ vpc_info.vpc.id }}'
+    register: vpc_subnet_info
+    when:
+      - vpc_label|d(False)
+      - vpc_info.vpc.id
 
   - name: get firewall info
     # https://galaxy.ansible.com/ui/repo/published/linode/cloud/content/module/firewall_info/
@@ -40,8 +96,14 @@
       image: '{{ image }}'
       root_pass: '{{ root_password }}'
       authorized_keys: '{{ ssh_keys }}'
-      private_ip: true
-      ua_prefix: 'docs-kafka-occ'          
+      interfaces:
+        - purpose: 'vpc'
+          subnet_id: '{{ vpc_subnet_info.subnet.id }}'
+          primary: true
+          ipv4:
+            nat_1_1: 'any'
+      private_ip: false
+      ua_prefix: 'docs-kafka-occ'
       tags: '{{ linode_tags }}'
       state: present
       firewall_id: '{{ (firewall_info.firewall|default({})).id|default(omit) }}'
@@ -106,8 +168,8 @@
             - name: {{ info.results[count].instance.label }}
               instance:
                 hostname: {{ info.results[count].instance.label }}{% if domain_name|d(False) and domain_info %}.{{ domain_name }}{% endif %}
-                ip_pub1: {{ info.results[count].instance.ipv4[0] }}
-                ip_priv1: {{ info.results[count].instance.ipv4[1] }}
+                ip_pub1: {{ info.results[count].networking.ipv4.public.0.address }}
+                ip_priv1: {{ info.results[count].networking.ipv4.vpc.0.address }}
             {%- endfor %}
 
   - name: add kafka nodes to inventory
@@ -118,7 +180,7 @@
         #jinja2: trim_blocks:False
         [kafka]
         {%- for count in range(cluster_size) %}
-        {{ info.results[count].networking.ipv4.public[0].rdns }} {% if count < controller_count %}role='controller and broker'{%else%}role='broker only'{%endif%}
+        {{ info.results[count].networking.ipv4.public.0.rdns }} {% if count < controller_count %}role='controller and broker'{%else%}role='broker only'{%endif%}
         {%- endfor %}
 
   - name: wait for port 22 to become open
