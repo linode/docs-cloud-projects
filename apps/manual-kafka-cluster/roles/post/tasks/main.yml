@@ -1,5 +1,0 @@
----
-# main
-
-- name: adding sudo user
-  import_tasks: sudouser.yml

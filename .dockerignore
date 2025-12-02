@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Environment variables and secrets
+.env
+.env.local
+*.env
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+
+# Logs
+*.log
+
+
+# Temporary files
+tmp/
+temp/
+*.tmp
