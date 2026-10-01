@@ -113,10 +113,11 @@ ko build -B
 
 Dockerfile is not required :-)
 
-*DISCLAIMER*
+## DISCLAIMER
 
-The code samples in this repository are provided free of charge and for learning purposes only. They are licensed under the terms and conditions of the MIT license, not under the terms of any contract you may have for Akamai products or services, and Akamai takes no responsibility for any damages arising from their usage. They should not be used in business or sensitive environments without the approval of trained security professionals. Akamai takes no responsibility for any damages that arise from their direct use.
+The code samples in this repository are provided free of charge and for learning purposes only. They are licensed under the terms and conditions of the MIT license, not under the terms of any contract you may have for Akamai products or services, and Akamai takes no responsibility for any damages arising from their usage. They should not be used in business or sensitive environments without the approval of trained security professionals. Akamai takes no responsibility for any damages that arise from their direct use. May contain security vulnerabilities.
 
+```
 =========
 The MIT License
 
@@ -128,4 +129,4 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 =========
-
+```
